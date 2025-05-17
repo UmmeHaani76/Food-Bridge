@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | FoodBridge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #16a34a;
+            --primary-hover: #15803d;
+            --background: #ffffff;
+            --foreground: #0f172a;
+            --card: #ffffff;
+            --card-foreground: #0f172a;
+            --border: #e2e8f0;
+            --input: #e2e8f0;
+            --ring: #16a34a;
+            --error: #ef4444;
+            --radius: 0.5rem;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            line-height: 1.5;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .form-container {
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 1.5rem;
+        }
+
+        .header {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            color: var(--primary);
+        }
+
+        .header p {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .card {
+            background-color: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-header p {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        form {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 640px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="tel"] {
+            padding: 0.5rem;
+            border: 1px solid var(--input);
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus,
+        input[type="tel"]:focus {
+            border-color: var(--ring);
+            box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .error {
+            color: var(--error);
+            font-size: 0.75rem;
+            min-height: 1rem;
+        }
+
+        .card-footer {
+            margin-top: 0.5rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            background-color: var(--card);
+            color: var(--card-foreground);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            max-width: 300px;
+            z-index: 1000;
+            transform: translateY(150%);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--primary);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--error);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="header">
+                <h1>FoodBridge</h1>
+                <p>Register to connect surplus food with those who need it most</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Create an account</h2>
+                    <p>Join FoodBridge to start making a difference today.</p>
+                </div>
+                
+                <form id="registrationForm">
+                    <div class="form-group">
+                        <label for="userType">I am a:</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="donor" name="userType" value="donor" checked>
+                                <label for="donor">Food Donor</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="ngo" name="userType" value="ngo">
+                                <label for="ngo">NGO/Recipient</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" name="name" placeholder="John Doe" required>
+                        <span class="error" id="nameError"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="john@example.com" required>
+                        <span class="error" id="emailError"></span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" required>
+                            <span class="error" id="passwordError"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm Password</label>
+                            <input type="password" id="confirmPassword" name="confirmPassword" required>
+                            <span class="error" id="confirmPasswordError"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" placeholder="+1 (555) 123-4567" required>
+                        <span class="error" id="phoneError"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="address">Address</label>
+                        <input type="text" id="address" name="address" placeholder="123 Main St, City, Country" required>
+                        <span class="error" id="addressError"></span>
+                    </div>
+
+                    <div class="form-group" id="organizationGroup" style="display: none;">
+                        <label for="organizationName">Organization Name</label>
+                        <input type="text" id="organizationName" name="organizationName" placeholder="Your NGO name">
+                        <span class="error" id="organizationNameError"></span>
+                    </div>
+
+                    <div class="card-footer">
+                        <button type="submit" id="submitButton">Create account</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">
+        <div class="toast-content"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
