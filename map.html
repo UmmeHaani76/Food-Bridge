@@ -7,12 +7,17 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css">
     <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
         #routeMap {
             height: calc(100vh - 56px);
             width: 100%;
             margin-top: 56px;
+            z-index: 1;
         }
         .route-info {
             position: absolute;
@@ -67,161 +72,61 @@
     </nav>
 
     <div id="routeMap"></div>
+    
     <div id="routeInfo" class="route-info">
         <h5><i class="fas fa-route me-2"></i>Route Information</h5>
         <div id="routeDetails">Loading...</div>
     </div>
 
+    <!-- Load scripts after elements are defined -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <!-- Load our custom JS last -->
+    <script src="js/map.js"></script>
+
+    <div id="debug-output" class="container mt-4" style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; display: block;">
+        <h4>Debug Information <button onclick="document.getElementById('debug-output').style.display='none'" class="btn btn-sm btn-close float-end"></button></h4>
+        <div id="debug-content" style="font-family: monospace; white-space: pre-wrap; max-height: 200px; overflow-y: auto;"></div>
+        <button onclick="document.getElementById('debug-content').innerHTML = ''" class="btn btn-sm btn-warning">Clear</button>
+        <button onclick="localStorage.removeItem('authToken'); location.reload();" class="btn btn-sm btn-danger">Clear Token & Reload</button>
+    </div>
     <script>
-        class RouteMap {
-            constructor() {
-                this.map = null;
-                this.routeLine = null;
-                this.donorMarker = null;
-                this.ngoMarker = null;
-                this.routeInfo = document.getElementById('routeInfo');
-                this.routeDetails = document.getElementById('routeDetails');
-
-                // Get token ID from URL parameters
-                const params = new URLSearchParams(window.location.search);
-                this.tokenId = params.get('tokenId');
-
-                if (!this.tokenId) {
-                    this.showError('No token ID provided');
-                    return;
-                }
-
-                // Get NGO location from localStorage
-                const ngoLocationStr = localStorage.getItem('ngoLocation');
-                if (!ngoLocationStr) {
-                    this.showError('NGO location not set. Please set your location in the dashboard.');
-                    return;
-                }
-
-                this.ngoLocation = JSON.parse(ngoLocationStr);
-                this.loadTokenAndInitialize();
-            }
-
-            async loadTokenAndInitialize() {
-                try {
-                    const response = await fetch(`http://localhost:5000/api/token/${this.tokenId}`, {
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        }
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Failed to load token data');
-                    }
-
-                    const data = await response.json();
-                    this.donorLocation = {
-                        lat: data.token.coordinates.latitude,
-                        lng: data.token.coordinates.longitude,
-                        address: data.token.location
-                    };
-
-                    this.initializeMap();
-                } catch (error) {
-                    console.error('Error loading token:', error);
-                    this.showError('Failed to load token data');
-                }
-            }
-
-            initializeMap() {
-                // Create map centered between NGO and donor locations
-                const centerLat = (this.donorLocation.lat + this.ngoLocation.latitude) / 2;
-                const centerLng = (this.donorLocation.lng + this.ngoLocation.longitude) / 2;
+        // Debug helper
+        const debugOutput = document.getElementById('debug-content');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
                 
-                this.map = L.map('routeMap').setView([centerLat, centerLng], 12);
-
-                // Add OpenStreetMap layer
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(this.map);
-
-                // Add custom markers
-                this.donorMarker = L.marker([this.donorLocation.lat, this.donorLocation.lng], {
-                    icon: L.divIcon({
-                        className: 'custom-marker donor-marker',
-                        html: 'D'
-                    })
-                }).addTo(this.map).bindPopup('Donor Location: ' + this.donorLocation.address);
-
-                this.ngoMarker = L.marker([this.ngoLocation.latitude, this.ngoLocation.longitude], {
-                    icon: L.divIcon({
-                        className: 'custom-marker ngo-marker',
-                        html: 'N'
-                    })
-                }).addTo(this.map).bindPopup('Your Location');
-
-                // Calculate and display route
-                this.calculateRoute();
-            }
-
-            async calculateRoute() {
-                try {
-                    // Create routing control
-                    const routingControl = L.Routing.control({
-                        waypoints: [
-                            L.latLng(this.ngoLocation.latitude, this.ngoLocation.longitude),
-                            L.latLng(this.donorLocation.lat, this.donorLocation.lng)
-                        ],
-                        router: L.Routing.osrmv1({
-                            serviceUrl: 'https://router.project-osrm.org/route/v1'
-                        }),
-                        lineOptions: {
-                            styles: [{color: '#198754', weight: 4}]
-                        },
-                        show: false,
-                        addWaypoints: false,
-                        draggableWaypoints: false,
-                        fitSelectedRoutes: true
-                    }).addTo(this.map);
-
-                    // Handle route calculation
-                    routingControl.on('routesfound', (e) => {
-                        const routes = e.routes;
-                        const route = routes[0]; // Get the first (best) route
-
-                        // Update route information
-                        const distance = (route.summary.totalDistance / 1000).toFixed(1);
-                        const duration = Math.round(route.summary.totalTime / 60);
-                        
-                        this.routeDetails.innerHTML = `
-                            <p><strong>Distance:</strong> ${distance} km</p>
-                            <p><strong>Estimated Time:</strong> ${duration} minutes</p>
-                            <p><strong>From:</strong> Your Location</p>
-                            <p><strong>To:</strong> ${this.donorLocation.address}</p>
-                            <a href="https://www.google.com/maps/dir/?api=1&origin=${this.ngoLocation.latitude},${this.ngoLocation.longitude}&destination=${this.donorLocation.lat},${this.donorLocation.lng}" 
-                               class="btn btn-outline-success btn-sm w-100" 
-                               target="_blank">
-                                <i class="fab fa-google me-2"></i>Open in Google Maps
-                            </a>
-                        `;
-                    });
-                } catch (error) {
-                    console.error('Error calculating route:', error);
-                    this.showError('Failed to calculate route');
-                }
-            }
-
-            showError(message) {
-                this.routeDetails.innerHTML = `
-                    <div class="alert alert-danger">
-                        ${message}
-                    </div>
-                `;
-            }
-        }
-
-        // Initialize the map when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            new RouteMap();
+        // Show debug panel with double click on header
+        document.querySelector('nav').addEventListener('dblclick', function() {
+            document.getElementById('debug-output').style.display = 'block';
         });
+        // Override console methods to show in debug panel
+        console.log = function() {
+            originalLog.apply(console, arguments);
+            addDebugMessage('LOG', arguments);
+        };
+                
+        console.error = function() {
+            originalError.apply(console, arguments);
+            addDebugMessage('ERROR', arguments);
+            document.getElementById('debug-output').style.display = 'block'; // Auto show on error
+        };
+                
+        console.warn = function() {
+            originalWarn.apply(console, arguments);
+            addDebugMessage('WARN', arguments);
+        };
+                
+        function addDebugMessage(type, args) {
+            if (!debugOutput) return;
+            const timestamp = new Date().toLocaleTimeString();
+            const message = Array.from(args).map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+            ).join(' ');
+            debugOutput.innerHTML += `<div class="${type.toLowerCase()}">[${timestamp}] ${type}: ${message}</div>`;
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+        }
     </script>
 </body>
 </html> 

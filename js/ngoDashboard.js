@@ -7,10 +7,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check for authentication
     let token = localStorage.getItem('authToken');
     if (!token) {
-        window.location.href = 'login.html';
-        return;
-    }
-
+            window.location.href = 'login.html';
+            return;
+        }
+        
     // Ensure token has Bearer prefix
     if (!token.startsWith('Bearer ')) {
         token = `Bearer ${token}`;
@@ -206,8 +206,8 @@ async function loadAvailableTokens() {
             }
 
             data.tokens.forEach(token => {
-                const createdAt = new Date(token.createdAt);
-                const expiresAt = new Date(createdAt.getTime() + 4 * 60 * 60 * 1000);
+        const createdAt = new Date(token.createdAt);
+        const expiresAt = new Date(createdAt.getTime() + 4 * 60 * 60 * 1000);
                 if (new Date() > expiresAt) {
                     console.log(`Skipping expired token ${token._id}`);
                     return;
@@ -247,7 +247,7 @@ async function loadAvailableTokens() {
                                 <i class="fas fa-map-marker-alt me-1"></i>${distance.toFixed(1)} km
                             </span>
                         ` : ''}
-                        <div class="card-body">
+                    <div class="card-body">
                             <h5 class="card-title">${token.type}</h5>
                             <p class="card-text">Quantity: ${token.quantity}</p>
                             <p class="card-text">Location: ${token.location}</p>
@@ -257,11 +257,11 @@ async function loadAvailableTokens() {
                                 </button>
                                 <button class="btn btn-outline-primary" onclick="showDirections('${token._id}')">
                                     <i class="fas fa-directions me-2"></i>Directions
-                                </button>
-                            </div>
-                        </div>
+                            </button>
                     </div>
-                `;
+                </div>
+            </div>
+        `;
                 tokenContainer.appendChild(card);
             });
         }
@@ -317,9 +317,9 @@ async function loadClaimedTokens() {
                             <button class="btn btn-outline-primary" onclick="showDirections('${token._id}')">
                                 <i class="fas fa-directions me-2"></i>Directions
                             </button>
-                        </div>
-                    </div>
-                `;
+                </div>
+            </div>
+        `;
                 tokenContainer.appendChild(card);
             });
         }
@@ -334,7 +334,72 @@ function deg2rad(deg) {
 }
 
 function showDirections(tokenId) {
-    window.location.href = `map.html?tokenId=${tokenId}`;
+    const ngoLocation = localStorage.getItem('ngoLocation');
+    
+    if (!ngoLocation) {
+        // Show modal prompt if NGO location is not set
+        const modalHtml = `
+            <div class="modal fade" id="locationPromptModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Location Required</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="text-center mb-4">
+                                <i class="fas fa-map-marker-alt text-danger fa-3x mb-3"></i>
+                                <p>You need to set your location first before viewing directions.</p>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="setLocationNowBtn">Set Location Now</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Append modal to body if it doesn't exist
+        if (!document.getElementById('locationPromptModal')) {
+            const modalContainer = document.createElement('div');
+            modalContainer.innerHTML = modalHtml;
+            document.body.appendChild(modalContainer.firstElementChild);
+        }
+        
+        // Initialize and show the modal
+        const promptModal = new bootstrap.Modal(document.getElementById('locationPromptModal'));
+        promptModal.show();
+        
+        // Add event listener for the Set Location Now button
+        document.getElementById('setLocationNowBtn').addEventListener('click', function() {
+            promptModal.hide();
+            showLocationModal();
+        });
+        
+        return;
+    }
+    
+    try {
+        // Verify that the NGO location data is valid
+        const locationData = JSON.parse(ngoLocation);
+        if (typeof locationData.latitude !== 'number' || 
+            typeof locationData.longitude !== 'number' ||
+            isNaN(locationData.latitude) || 
+            isNaN(locationData.longitude)) {
+            
+            // Show error for invalid location data
+            showNotification('Your location data is invalid. Please set your location again.', 'warning');
+            return;
+        }
+        
+        // Proceed with directions if location is valid
+        window.location.href = `map.html?tokenId=${tokenId}`;
+    } catch (error) {
+        console.error('Error parsing NGO location:', error);
+        showNotification('Your location data is corrupted. Please set your location again.', 'warning');
+    }
 }
 
 function logout() {
@@ -346,18 +411,18 @@ function logout() {
 async function claimToken(tokenId) {
     try {
         console.log('Claiming token:', tokenId);
-        const response = await fetch(`http://localhost:5000/api/token/${tokenId}/claim`, {
-            method: 'PATCH',
-            headers: {
+            const response = await fetch(`http://localhost:5000/api/token/${tokenId}/claim`, {
+                method: 'PATCH',
+                headers: {
                 'Authorization': localStorage.getItem('authToken')
-            }
-        });
-        
-        if (!response.ok) {
+                }
+            });
+
+            if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
         
-        const data = await response.json();
+                const data = await response.json();
         
         if (data.success) {
             // Show success message
